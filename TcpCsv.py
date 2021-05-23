@@ -14,16 +14,6 @@ class TcpServer(object):
         self.port = port
         self.messagebuffer = queue.Queue()  # create Buffer for messages from TCP connections
 
-    @staticmethod
-    def timestampprint(message=""):
-        """
-        print messages with the actual timestamp
-        "[23.05.2021 11:12:20] message"
-        """
-        now = time.strftime("%d.%m.%Y %H:%M:%S")
-        message = "[{time}] {message}".format(time=now, message=message)
-        print(message)
-
     def checkmessagebuffer(self):
         """
         check the messagebuffer queue for messages
@@ -31,24 +21,25 @@ class TcpServer(object):
         else: pass
         """
         try:  # check for messages in messagebuffer
-            message = self.messagebuffer.get(block=False)
-            self.timestampprint(message)
+            message, timestamp, color = self.messagebuffer.get(block=False)
+            specialprint(message=message, timestamp=timestamp, color=color)
         except queue.Empty:  # no messages in messagebuffer
             pass
 
     def run(self):
-        self.timestampprint("Server starting @ [IP: {host} Port: {port}]".format(host=self.host, port=self.port))
+        message = "Server starting @ [IP: {host} Port: {port}]".format(host=self.host, port=self.port)
+        specialprint(message=message, timestamp=True, color="white")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:  # create an INET, STREAMing socket
             try:
                 connection.bind((self.host, self.port))  # bind the socket to a host and port
             except Exception as errormessage:  # an error occurred
-                print("------ Error ------")
-                print(errormessage)
-                print("-------------------")
+                specialprint(message="------ Error ------", timestamp=False, color="red")
+                specialprint(message=str(errormessage), timestamp=False, color="red")
+                specialprint(message="-------------------", timestamp=False, color="red")
                 time.sleep(10)  # keep window open to read the error for some seconds
             else:
-                self.timestampprint("Server started")
-                self.timestampprint("Server listening for connections...")
+                specialprint(message="Server started", timestamp=True, color="white")
+                specialprint(message="Server listening for connections...", timestamp=True, color="white")
                 while True:
                     try:
                         connection.listen()  # wait for a partner to request a connection
@@ -60,14 +51,14 @@ class TcpServer(object):
                             self.checkmessagebuffer()
                         else:
                             # an unwanted error occurred
-                            print("------ Error ------")
-                            print(errormessage)
-                            print("-------------------")
+                            specialprint(message="------ Error ------", timestamp=False, color="red")
+                            specialprint(message=str(errormessage), timestamp=False, color="red")
+                            specialprint(message="-------------------", timestamp=False, color="red")
                             time.sleep(10)  # keep window open to read the error for some seconds
                             break
                     else:
-                        self.timestampprint("[IP: {partnerip} Port: {partnerport}] --> connected".format(
-                            partnerip=addr[0], partnerport=addr[1]))
+                        message = "[IP: {ip} Port: {port}] --> connected".format(ip=addr[0], port=addr[1])
+                        specialprint(message=message, timestamp=True, color="magenta")
                         Connection(channel, addr, self.messagebuffer)
 
 
@@ -94,7 +85,7 @@ class Connection(object):
             recv = recv.decode("utf-8", "ignore")  # format received data
             if not recv:  # if no data in received data, then partner has closed connection
                 message = "[IP: {ip} Port: {port}] --> connection closed".format(ip=self.ip, port=self.port)
-                self.buffer_message.put(message)
+                self.buffer_message.put((message, True, "magenta"))
                 break
             else:
                 # PROCESS DATA
@@ -103,135 +94,158 @@ class Connection(object):
                 command = recv[:9]  # first 10 chars = command
                 if "!status" in command:
                     commandmessage += "!status"
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     send = "!status:OK"
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!delete" in command:
                     commandmessage += "!delete"
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     self.string = ""
                     send = "!delete:OK"
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                     pass
                 elif "!concat" in command:
                     data = recv[7:]  # data starts at the 7th char
                     commandmessage += "!concat: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     self.string += data
                     send = "!concat:OK"
                     answermessage += send
-                    self.buffer_message.put("{message}: {string}".format(message=answermessage, string=self.string))
+                    answermessage = "{message}: {string}".format(message=answermessage, string=self.string)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!length" in command:
                     commandmessage += "!length"
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     length = len(self.string)
                     send = "!length:{length}".format(length=length)
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!setfile" in command:
                     data = recv[8:]  # data starts at the 8th char
                     commandmessage += "!setfile: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     try:
                         with open(data, mode="w") as file:
                             file.close()
                             pass
                     except Exception as errormessage:  # an error occurred
-                        self.buffer_message.put(errormessage)
+                        self.buffer_message.put((str(errormessage), True, "red"))
                         send = "!setfile:NOK"
                         answermessage += send
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                         self.file = ""
                     else:
                         send = "!setfile:OK"
                         answermessage += send
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                         self.file = data
                 elif "!isfile" in command:
                     data = recv[7:]  # data starts at the 7th char
                     commandmessage += "!isfile: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     if os.path.exists(data):
                         send = "!isfile:OK"
                     else:
                         send = "!isfile:NOK"
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!setpath" in command:
                     data = recv[8:]  # data starts at the 8th char
                     commandmessage += "!setpath: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     try:
                         os.mkdir(data)
                     except Exception as errormessage:  # an error occurred
-                        self.buffer_message.put(errormessage)
+                        self.buffer_message.put((str(errormessage), True, "red"))
                         send = "!setpath:NOK"
                         answermessage += send
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                     else:
                         send = "!setfile:OK"
                         answermessage += send
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!ispath" in command:
                     data = recv[7:]  # data starts at the 7th char
                     commandmessage += "!ispath: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     if os.path.isdir(data):
                         send = "!ispath:OK"
                     else:
                         send = "!ispath:NOK"
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!save" in command:
                     commandmessage += "!save"
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "green"))
                     try:
                         with open(self.file, mode="a") as file:
                             file.writelines(self.string + "\n")
                     except Exception as errormessage:  # an error occurred
-                        self.buffer_message.put(errormessage)
+                        self.buffer_message.put((str(errormessage), True, "red"))
                         send = "!save:NOK"
                         answermessage += send
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                     else:
                         send = "!save:OK"
                         answermessage += send
                         answermessage += " {file} >> {string}".format(file=self.file, string=self.string)
-                        self.buffer_message.put(answermessage)
+                        self.buffer_message.put((answermessage, True, "cyan"))
                         self.string = ""
                 else:
                     data = recv  # data is complete string
                     commandmessage += "bad command: {data}".format(data=data)
-                    self.buffer_message.put(commandmessage)
+                    self.buffer_message.put((commandmessage, True, "red"))
                     send = "!error"
                     answermessage += send
-                    self.buffer_message.put(answermessage)
+                    self.buffer_message.put((answermessage, True, "cyan"))
                 # SEND DATA
                 send = send.encode("utf-8", "ignore")  # format send data
                 self.channel.send(send)
         self.channel.close()
 
 
+def specialprint(message="", timestamp=False, color=None):
+    """
+    print messages with the actual timestamp
+    "[23.05.2021 11:12:20] message"
+    """
+    # define colors
+    colors = {"black": "\033[0;90m",
+              "red": "\033[0;91m",
+              "green": "\033[0;92m",
+              "yellow": "\033[0;93m",
+              "blue": "\033[0;94m",
+              "magenta": "\033[0;95m",
+              "cyan": "\033[0;96m",
+              "white": "\033[0;97m"}
+    if color is not None:
+        message = colors[color]+message
+    if timestamp:
+        now = time.strftime("%d.%m.%Y %H:%M:%S")
+        message = "{color}[{time}] {message}".format(color=colors["white"], time=now, message=message)
+    print(message)
+
+
 def serversettings():
-    print("Type 'help' to see all commands")
+    specialprint(message="Type 'help' to see all commands", timestamp=False, color="white")
     while True:
         # refresh settings
         with open("config.txt") as temp_configfile:
             temp_configfile = json.load(temp_configfile)
         # check command
-        command = input(">> ")
+        command = input("\033[0;97m>> ")
         if command[:4] == "help":
-            print("ip               - show the IP-Address the Server will host")
-            print("port             - show the Portnumber the Server will host")
-            print("set ip 127.0.0.1 - set the IP-Address the Server will host")
-            print("set port 2000    - set the Portnumber the Server will host")
-            print("start            - exit settings and start Server")
+            specialprint(message="ip               - show the Server IP-Address", timestamp=False, color="white")
+            specialprint(message="port             - show the Server Portnumber", timestamp=False, color="white")
+            specialprint(message="set ip 127.0.0.1 - set the Server IP-Address", timestamp=False, color="white")
+            specialprint(message="set port 2000    - set the Server Portnumber", timestamp=False, color="white")
+            specialprint(message="start            - exit settings and start Server", timestamp=False, color="white")
         elif command[:2] == "ip":
-            print(temp_configfile["IP"])
+            specialprint(message=temp_configfile["IP"], timestamp=False, color="white")
         elif command[:4] == "port":
-            print(temp_configfile["PORT"])
+            specialprint(message=str(temp_configfile["PORT"]), timestamp=False, color="white")
         elif command[:6] == "set ip":
             temp_configfile["IP"] = command[7:]
             with open("config.txt", "w", encoding="utf-8") as f:
@@ -243,11 +257,11 @@ def serversettings():
                 with open("config.txt", "w", encoding="utf-8") as f:
                     json.dump(temp_configfile, f, ensure_ascii=False, indent=4)
             except ValueError:
-                print("{port} is not a number!".format(port=command[9:]))
+                specialprint(message="{port} is not a number!".format(port=command[9:]), timestamp=False, color="red")
         elif command[:5] == "start":
             break
         else:
-            print("bad command")
+            specialprint(message="bad command", timestamp=False, color="red")
 
 
 def serverstart(_ip, _port):
@@ -256,12 +270,15 @@ def serverstart(_ip, _port):
 
 
 if __name__ == "__main__":
+    os.system("color")
     # Read JSON file (configfile)
     with open("config.txt") as configfile:
         configfile = json.load(configfile)
-    print("Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=configfile["IP"], port=configfile["PORT"]))
+    msg = "Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=configfile["IP"], port=configfile["PORT"])
+    specialprint(message=msg, timestamp=False, color="white")
     if sys.__stdin__.isatty():  # check if the console is interactive
-        userText, timedOut = timedInput(prompt="Press <ENTER> to interrupt and go to settings menu >> ", timeOut=10)
+        msg = "\033[0;93mPress <ENTER> to interrupt and go to settings menu >> "
+        userText, timedOut = timedInput(prompt=msg, timeOut=10)
         if timedOut:
             serverstart(configfile["IP"], int(configfile["PORT"]))
         else:
