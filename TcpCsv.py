@@ -2,29 +2,75 @@ import socket
 import queue
 import threading
 import time
-from pytimedinput import timedInput
-import sys
+import keyboard
 import os
 import json
 
 
 class TcpServer(object):
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
+    def __init__(self):
+        # Read JSON file (configfile)
+        with open("config.txt") as configfile:
+            self.configfile = json.load(configfile)
+        self.host = self.configfile["IP"]
+        self.port = self.configfile["PORT"]
+        self.delay = 10
+        self.setupflag = False
         self.messagebuffer = queue.Queue()  # create Buffer for messages from TCP connections
 
-    def checkmessagebuffer(self):
-        """
-        check the messagebuffer queue for messages
-        if message: print() the message
-        else: pass
-        """
-        try:  # check for messages in messagebuffer
-            message, timestamp, color = self.messagebuffer.get(block=False)
-            specialprint(message=message, timestamp=timestamp, color=color)
-        except queue.Empty:  # no messages in messagebuffer
+    def startup(self):
+        msg = "Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=self.host, port=self.port)
+        specialprint(message=msg, timestamp=False, color="white")
+        msg = "Press <ENTER> to interrupt and go to settings menu >> "
+        specialprint(message=msg, timestamp=False, color="yellow")
+        delay = time.time() + self.delay
+        keyboard.add_hotkey('enter', lambda: self.set_setup())
+        while time.time() < delay and not self.setupflag:
             pass
+        if self.setupflag:
+            keyboard.remove_hotkey('enter')
+            self.setup()
+        self.run()
+
+    def set_setup(self):
+        self.setupflag = True
+
+    def setup(self):
+        specialprint(message="Type 'help' to see all commands", timestamp=False, color="white")
+        while True:
+            # refresh settings
+            with open("config.txt") as configfile:
+                self.configfile = json.load(configfile)
+            # check command
+            command = input("\033[0;97m>> ")
+            if command[:4] == "help":
+                specialprint(message="ip               - show the Server IP-Address", timestamp=False, color="white")
+                specialprint(message="port             - show the Server Portnumber", timestamp=False, color="white")
+                specialprint(message="set ip 127.0.0.1 - set the Server IP-Address", timestamp=False, color="white")
+                specialprint(message="set port 2000    - set the Server Portnumber", timestamp=False, color="white")
+                specialprint(message="start            - exit settings and start Server", timestamp=False,
+                             color="white")
+            elif command[:2] == "ip":
+                specialprint(message=self.configfile["IP"], timestamp=False, color="white")
+            elif command[:4] == "port":
+                specialprint(message=str(self.configfile["PORT"]), timestamp=False, color="white")
+            elif command[:6] == "set ip":
+                self.configfile["IP"] = command[7:]
+                with open("config.txt", "w", encoding="utf-8") as f:
+                    json.dump(self.configfile, f, ensure_ascii=False, indent=4)
+            elif command[:8] == "set port":
+                try:
+                    newport = int(command[9:])
+                    self.configfile["PORT"] = newport
+                    with open("config.txt", "w", encoding="utf-8") as f:
+                        json.dump(self.configfile, f, ensure_ascii=False, indent=4)
+                except ValueError:
+                    specialprint(message="{port} is not a number!".format(port=command[9:]), timestamp=False,
+                                 color="red")
+            elif command[:5] == "start":
+                break
+            else:
+                specialprint(message="bad command", timestamp=False, color="red")
 
     def run(self):
         message = "Server starting @ [IP: {host} Port: {port}]".format(host=self.host, port=self.port)
@@ -60,6 +106,18 @@ class TcpServer(object):
                         message = "[IP: {ip} Port: {port}] --> connected".format(ip=addr[0], port=addr[1])
                         specialprint(message=message, timestamp=True, color="magenta")
                         Connection(channel, addr, self.messagebuffer)
+
+    def checkmessagebuffer(self):
+        """
+        check the messagebuffer queue for messages
+        if message: print() the message
+        else: pass
+        """
+        try:  # check for messages in messagebuffer
+            message, timestamp, color = self.messagebuffer.get(block=False)
+            specialprint(message=message, timestamp=timestamp, color=color)
+        except queue.Empty:  # no messages in messagebuffer
+            pass
 
 
 class Connection(object):
@@ -228,64 +286,9 @@ def specialprint(message="", timestamp=False, color=None):
     print(message)
 
 
-def serversettings():
-    specialprint(message="Type 'help' to see all commands", timestamp=False, color="white")
-    while True:
-        # refresh settings
-        with open("config.txt") as temp_configfile:
-            temp_configfile = json.load(temp_configfile)
-        # check command
-        command = input("\033[0;97m>> ")
-        if command[:4] == "help":
-            specialprint(message="ip               - show the Server IP-Address", timestamp=False, color="white")
-            specialprint(message="port             - show the Server Portnumber", timestamp=False, color="white")
-            specialprint(message="set ip 127.0.0.1 - set the Server IP-Address", timestamp=False, color="white")
-            specialprint(message="set port 2000    - set the Server Portnumber", timestamp=False, color="white")
-            specialprint(message="start            - exit settings and start Server", timestamp=False, color="white")
-        elif command[:2] == "ip":
-            specialprint(message=temp_configfile["IP"], timestamp=False, color="white")
-        elif command[:4] == "port":
-            specialprint(message=str(temp_configfile["PORT"]), timestamp=False, color="white")
-        elif command[:6] == "set ip":
-            temp_configfile["IP"] = command[7:]
-            with open("config.txt", "w", encoding="utf-8") as f:
-                json.dump(temp_configfile, f, ensure_ascii=False, indent=4)
-        elif command[:8] == "set port":
-            try:
-                newport = int(command[9:])
-                temp_configfile["PORT"] = newport
-                with open("config.txt", "w", encoding="utf-8") as f:
-                    json.dump(temp_configfile, f, ensure_ascii=False, indent=4)
-            except ValueError:
-                specialprint(message="{port} is not a number!".format(port=command[9:]), timestamp=False, color="red")
-        elif command[:5] == "start":
-            break
-        else:
-            specialprint(message="bad command", timestamp=False, color="red")
-
-
-def serverstart(_ip, _port):
-    server = TcpServer(_ip, int(_port))
-    server.run()
-
-
 if __name__ == "__main__":
     os.system("color")
-    # Read JSON file (configfile)
-    with open("config.txt") as configfile:
-        configfile = json.load(configfile)
-    msg = "Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=configfile["IP"], port=configfile["PORT"])
-    specialprint(message=msg, timestamp=False, color="white")
-    if sys.__stdin__.isatty():  # check if the console is interactive
-        msg = "\033[0;93mPress <ENTER> to interrupt and go to settings menu >> "
-        userText, timedOut = timedInput(prompt=msg, timeOut=10)
-        if timedOut:
-            serverstart(configfile["IP"], int(configfile["PORT"]))
-        else:
-            serversettings()
-            with open("config.txt") as configfile:
-                configfile = json.load(configfile)
-            serverstart(configfile["IP"], int(configfile["PORT"]))
-    else:  # no interactive console, direct start
-        time.sleep(10)
-        serverstart(configfile["IP"], int(configfile["PORT"]))
+    server = TcpServer()
+    server.startup()
+
+
