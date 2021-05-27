@@ -21,14 +21,14 @@ class TcpServer(object):
     def startup(self):
         msg = "Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=self.host, port=self.port)
         specialprint(message=msg, timestamp=False, color="white")
-        msg = "Press <ENTER> to interrupt and go to settings menu >> "
+        msg = "Press <ESC> to interrupt and go to settings menu >> "
         specialprint(message=msg, timestamp=False, color="yellow")
         delay = time.time() + self.delay
-        keyboard.add_hotkey('enter', lambda: self.set_setup())
+        keyboard.add_hotkey("esc", lambda: self.set_setup())
         while time.time() < delay and not self.setupflag:
             pass
         if self.setupflag:
-            keyboard.remove_hotkey('enter')
+            keyboard.remove_hotkey("esc")
             self.setup()
         self.run()
 
@@ -290,5 +290,3 @@ if __name__ == "__main__":
     os.system("color")
     server = TcpServer()
     server.startup()
-
-
