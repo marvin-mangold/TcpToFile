@@ -36,3 +36,8 @@ TcpToFile is a Sotfware to save data from multiple TCP-clients on TCP-server Fil
 
   
   ![Statemachine](https://user-images.githubusercontent.com/10088323/129964679-96305bad-85d0-4605-8512-46547a227ade.png)
+
+        
+
+https://user-images.githubusercontent.com/10088323/129979732-febbaaf1-733d-47c4-8b84-1f09165cf0f0.mp4
+
