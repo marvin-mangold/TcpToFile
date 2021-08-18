@@ -15,7 +15,7 @@ TcpToFile is a Sotfware to save data from multiple TCP-clients on TCP-server Fil
         start               exit settings and start server
         -----------------------------------------------------------------------------------
 
-- after the startup the server is litening for TCP-client connections
+- if the startup is done the server is litening for TCP-client connections
 - each TCP-client is running in its own thread
 - the server is now listening for incoming commands from the clients
 - all commands and responses are logged in the console
