@@ -21,7 +21,7 @@ TcpToFile is a Sotfware to save data from multiple TCP-clients on TCP-server Fil
 - all commands and responses are logged in the console
   
         -----------------------------------------------------------------------------------
-        commands:       action                          respond
+        commands:       action:                         respond:
         !status         check connection state          !status:OK
         !delete         delete saved string             !delete:OK
         !concat         add string to actual string     !concat:OK
