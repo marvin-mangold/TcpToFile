@@ -199,7 +199,7 @@ class Connection(object):
         !status         check connection state          !status:OK
         !delete         delete saved string             !delete:OK
         !concat         add string to actual string     !concat:OK
-        !length         get actual string length        !length: "length of actual string"
+        !length         get actual string length        !length:"length of actual string"
         !setfile        create empty file               !setfile:OK / !setfile:NOK
         !isfile         check if file exists            !isfile:OK / !isfile:NOK
         !setpath        create empty folder             !setpath:OK / !setpath:NOK
@@ -248,7 +248,7 @@ class Connection(object):
                     commandmessage += "!length"
                     self.buffer_message.put((commandmessage, True, "green"))
                     length = len(self.string)
-                    send = "!length: {length}".format(length=length)
+                    send = "!length:{length}".format(length=length)
                     answermessage += send
                     self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!setfile" in command:
@@ -292,7 +292,7 @@ class Connection(object):
                         answermessage += send
                         self.buffer_message.put((answermessage, True, "cyan"))
                     else:
-                        send = "!setfile:OK"
+                        send = "!setpath:OK"
                         answermessage += send
                         self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!ispath" in command:
