@@ -3,7 +3,7 @@
 TcpToFile is a Sotfware to save data from multiple TCP-clients on TCP-server Filesystem as .txt or .csv
 
 - start TcpToFile.exe
-- interrupt the startup process by pressing <ESC> within the first 10 seconds to enter the setup menu:
+- interrupt the startup process by pressing ESC within the first 10 seconds to enter the setup menu:
 
         -----------------------------------------------------------------------------------
         commands:
