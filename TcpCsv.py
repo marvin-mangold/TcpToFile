@@ -1,3 +1,18 @@
+"""
+TcpCsv - connect multiple PLC and PC
+Copyright (C) 2021  Marvin Mangold (Marvin.Mangold00@googlemail.com)
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import socket
 import queue
 import threading
@@ -8,40 +23,66 @@ import json
 
 
 class TcpServer(object):
+    """
+    -provide the user interface (help information / settings menu / TCP eventlog)
+    -listen for TCP-connections and initiate a new communication channel for each
+    """
     def __init__(self):
-        # Read JSON file (configfile)
+        # read JSON file (configfile) to get the saved server settings
         with open("config.txt") as configfile:
             self.configfile = json.load(configfile)
         self.host = self.configfile["IP"]
         self.port = self.configfile["PORT"]
-        self.delay = 10
-        self.setupflag = False
-        self.messagebuffer = queue.Queue()  # create Buffer for messages from TCP connections
+        self.delay = 10  # startup delay to start the server, press <ESC> during the delay to go to settings menu
+        self.setupflag = False  # flag to memorize if <ESC> was pressed during the startup delay
+        self.messagebuffer = queue.Queue()  # create buffer for messages from multiple TCP connections
 
     def startup(self):
+        """
+        -print user information about server settings and how to change them
+        -startup server mainloop after the start delay
+        -if <ESC> is pressed during the delay go to settings menu
+        -if <ESC> is not pressed during the delay start the server mainloop
+        """
         msg = "Server will start in 10s on [IP: {ip} Port: {port}]".format(ip=self.host, port=self.port)
         specialprint(message=msg, timestamp=False, color="white")
         msg = "Press <ESC> to interrupt and go to settings menu >> "
         specialprint(message=msg, timestamp=False, color="yellow")
-        delay = time.time() + self.delay
-        keyboard.add_hotkey("esc", lambda: self.set_setup())
-        while time.time() < delay and not self.setupflag:
+        delay = time.time() + self.delay  # end of delay = actual time + delay
+        keyboard.add_hotkey("esc", lambda: self.set_setup())  # setup to call setup menu if <ESC> is pressed
+        while time.time() < delay and not self.setupflag:  # delay
             pass
         if self.setupflag:
-            keyboard.remove_hotkey("esc")
+            keyboard.remove_hotkey("esc")  # if the settings menu is called, remove hotkey to prevent another call
             self.setup()
-        self.run()
+        self.run()  # run server mainloop
 
     def set_setup(self):
+        """
+        -<ESC> was pressed during server startup delay
+        """
         self.setupflag = True
 
     def setup(self):
+        """
+        -print user information how to get help information
+        -listen for user input (commands) and respond
+        -----------------------------------------------------------------------------------
+        commands:
+        help                show help information
+        ip                  show the Server IP-Address
+        port                show the Server Portnumber
+        set ip 127.0.0.1    set the Server IP-Address
+        set port 2000       set the Server Portnumber
+        start               exit settings and start Server
+        -----------------------------------------------------------------------------------
+        """
         specialprint(message="Type 'help' to see all commands", timestamp=False, color="white")
         while True:
             # refresh settings
             with open("config.txt") as configfile:
                 self.configfile = json.load(configfile)
-            # check command
+            # check for incoming commands
             command = input("\033[0;97m>> ")
             if command[:4] == "help":
                 specialprint(message="ip               - show the Server IP-Address", timestamp=False, color="white")
@@ -73,11 +114,16 @@ class TcpServer(object):
                 specialprint(message="bad command", timestamp=False, color="red")
 
     def run(self):
+        """
+        -print user information about server settings
+        -start server mainloop
+        -listen for TCP-connections and call a connection object (thread) for each client connection
+        """
         message = "Server starting @ [IP: {host} Port: {port}]".format(host=self.host, port=self.port)
         specialprint(message=message, timestamp=True, color="white")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as connection:  # create an INET, STREAMing socket
             try:
-                connection.bind((self.host, self.port))  # bind the socket to a host and port
+                connection.bind((self.host, self.port))  # bind the socket to the host and port
             except Exception as errormessage:  # an error occurred
                 specialprint(message="------ Error ------", timestamp=False, color="red")
                 specialprint(message=str(errormessage), timestamp=False, color="red")
@@ -93,7 +139,7 @@ class TcpServer(object):
                         channel, addr = connection.accept()  # accept the connection request
                     except Exception as errormessage:  # an error occurred
                         if "timed out" in str(errormessage):
-                            # this is the connection.settimeout(0.1) break we wanted to do other things
+                            # this is the connection.settimeout(0.1) error to break the listening to do other things
                             self.checkmessagebuffer()
                         else:
                             # an unwanted error occurred
@@ -102,16 +148,16 @@ class TcpServer(object):
                             specialprint(message="-------------------", timestamp=False, color="red")
                             time.sleep(10)  # keep window open to read the error for some seconds
                             break
-                    else:
+                    else:  # a connection request was recieved
                         message = "[IP: {ip} Port: {port}] --> connected".format(ip=addr[0], port=addr[1])
                         specialprint(message=message, timestamp=True, color="magenta")
                         Connection(channel, addr, self.messagebuffer)
 
     def checkmessagebuffer(self):
         """
-        check the messagebuffer queue for messages
-        if message: print() the message
-        else: pass
+        -check the messagebuffer queue for TCP client commands
+            if message: print() the message
+            else: pass
         """
         try:  # check for messages in messagebuffer
             message, timestamp, color = self.messagebuffer.get(block=False)
@@ -121,6 +167,13 @@ class TcpServer(object):
 
 
 class Connection(object):
+    """
+    -start a thread for a TCP-connection client
+    -run the loop for the thread
+    -listen for TCP-data from client
+    -look for commands in the TCP-data and send a respond to the client
+    -put the
+    """
     def __init__(self, channel, addr, messagebuffer):
         # Connection parameters
         self.channel = channel  # Connection data
@@ -137,9 +190,27 @@ class Connection(object):
         self.string = ""
 
     def run(self):
+        """
+        -listen for TCP-data from client
+        -process TCP-commands
+        -send respond via TCP to client
+        -----------------------------------------------------------------------------------
+        commands:       action                          respond
+        !status         check connection state          !status:OK
+        !delete         delete saved string             !delete:OK
+        !concat         add string to actual string     !concat:OK
+        !length         get actual string length        !length: "length of actual string"
+        !setfile        create empty file               !setfile:OK / !setfile:NOK
+        !isfile         check if file exists            !isfile:OK / !isfile:NOK
+        !setpath        create empty folder             !setpath:OK / !setpath:NOK
+        !ispath         check if folder exists          !ispath:OK / !ispath:NOK
+        !save           save actual string in file      !save:OK / !save:NOK
+        ???             bad command recieved            !error
+        -----------------------------------------------------------------------------------
+        """
         while True:
             # RECEIVE DATA
-            recv = self.channel.recv(1000)  # waiting for maximal 1000 bytes data
+            recv = self.channel.recv(1000)  # waiting for max 1000 bytes data
             recv = recv.decode("utf-8", "ignore")  # format received data
             if not recv:  # if no data in received data, then partner has closed connection
                 message = "[IP: {ip} Port: {port}] --> connection closed".format(ip=self.ip, port=self.port)
@@ -177,7 +248,7 @@ class Connection(object):
                     commandmessage += "!length"
                     self.buffer_message.put((commandmessage, True, "green"))
                     length = len(self.string)
-                    send = "!length:{length}".format(length=length)
+                    send = "!length: {length}".format(length=length)
                     answermessage += send
                     self.buffer_message.put((answermessage, True, "cyan"))
                 elif "!setfile" in command:
