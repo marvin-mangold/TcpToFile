@@ -30,8 +30,7 @@
         ???             bad command recieved            !error
         -----------------------------------------------------------------------------------
 
-  
   ![Statemachine](https://user-images.githubusercontent.com/10088323/129964679-96305bad-85d0-4605-8512-46547a227ade.png)
 
-        
-<iframe width="955" height="537" src="https://user-images.githubusercontent.com/10088323/129979732-febbaaf1-733d-47c4-8b84-1f09165cf0f0.mp4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+# Example
+<div align="center"><iframe align="center" width="100%" height="400" src="https://user-images.githubusercontent.com/10088323/129979732-febbaaf1-733d-47c4-8b84-1f09165cf0f0.mp4" title="YouTube video player" frameborder="5" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>
