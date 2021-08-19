@@ -1,37 +1,37 @@
-## Welcome to GitHub Pages
+- start TcpToFile.exe
+- interrupt the startup process by pressing ESC within the first 10 seconds to enter the setup menu:
 
-You can use the [editor on GitHub](https://github.com/marvin-mangold/TcpToFile/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+        -----------------------------------------------------------------------------------
+        commands:
+        help                show help information
+        ip                  show the server IP-Address
+        port                show the server Portnumber
+        set ip 127.0.0.1    set the server IP-Address
+        set port 2000       set the server Portnumber
+        start               exit settings and start server
+        -----------------------------------------------------------------------------------
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+- if the startup is done the server is litening for TCP-client connections
+- each TCP-client is running on its own thread
+- the server is now listening for incoming commands from the clients
+- all commands and responses are logged in the console
+  
+        -----------------------------------------------------------------------------------
+        commands:       action:                         respond:
+        !status         check connection state          !status:OK
+        !delete         delete saved string             !delete:OK
+        !concat         add string to actual string     !concat:OK
+        !length         get actual string length        !length: "length of actual string"
+        !setfile        create empty file               !setfile:OK / !setfile:NOK
+        !isfile         check if file exists            !isfile:OK / !isfile:NOK
+        !setpath        create empty folder             !setpath:OK / !setpath:NOK
+        !ispath         check if folder exists          !ispath:OK / !ispath:NOK
+        !save           save actual string in file      !save:OK / !save:NOK
+        ???             bad command recieved            !error
+        -----------------------------------------------------------------------------------
 
-### Markdown
+  
+  ![Statemachine](https://user-images.githubusercontent.com/10088323/129964679-96305bad-85d0-4605-8512-46547a227ade.png)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
-
-```markdown
-Syntax highlighted code block
-
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/marvin-mangold/TcpToFile/settings/pages). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+        
+<iframe width="955" height="537" src="https://user-images.githubusercontent.com/10088323/129979732-febbaaf1-733d-47c4-8b84-1f09165cf0f0.mp4" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
