@@ -17,9 +17,14 @@ import socket
 import queue
 import threading
 import time
-import keyboard
 import os
 import json
+import ansicon
+import msvcrt
+
+
+# activate ansicon to enable ANSI codes im command prompt for coloured text
+ansicon.load()
 
 
 class TcpServer(object):
@@ -49,11 +54,12 @@ class TcpServer(object):
         msg = "Press <ESC> to interrupt and go to settings menu >> "
         specialprint(message=msg, timestamp=False, color="yellow")
         delay = time.time() + self.delay  # end of delay = actual time + delay
-        keyboard.add_hotkey("esc", lambda: self.set_setup())  # setup to call setup menu if <ESC> is pressed
         while time.time() < delay and not self.setupflag:  # delay
-            pass
+            if msvcrt.kbhit():
+                key_stroke = msvcrt.getch()
+                if key_stroke == b'\x1b':
+                    self.set_setup()
         if self.setupflag:
-            keyboard.remove_hotkey("esc")  # if the settings menu is called, remove hotkey to prevent another call
             self.setup()
         self.run()  # run server mainloop
 

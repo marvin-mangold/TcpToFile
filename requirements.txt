@@ -2,6 +2,6 @@ socket
 queue
 threading
 time
-keyboard
+ansicon
 os
 json
